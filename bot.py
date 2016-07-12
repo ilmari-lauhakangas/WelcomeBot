@@ -65,7 +65,8 @@ def irc_start(server): # pragma: no cover  (this excludes this function from tes
     return ircsock
 
 def join_irc(ircsock, botnick, channel):
-    ircsock.send("USER {0} {0} {0} :This is http://openhatch.org/'s greeter bot"
+    ircsock.send("USER {0} {0} {0} :This is http://falcon.readthedocs.io/en/stable/"
+                 "greeter bot"
              ".\n".format(botnick))  # bot authentication
     ircsock.send("NICK {}\n".format(botnick))  # Assign the nick to the bot.
     if os.path.isfile("password.txt"):
@@ -102,10 +103,9 @@ def get_regex(options, botnick):
 def welcome_nick(newcomer, ircsock, channel, channel_greeters):
     ircsock.send("PRIVMSG {0} :Welcome {1}!  The channel is pretty quiet "
                  "right now, so I thought I'd say hello, and ping some people "
-                 "(like {2}) that you're here.  If no one responds for a "
-                 "while, try emailing us at hello@openhatch.org or just try "
-                 "coming back later.  FYI, you're now on my list of known "
-                 "nicknames, so I won't bother you again."
+                 "(like {2}) that you're here. I'm a bot! If no one responds for a "
+                 "while, try emailing us at users@mail.falconframework.org or just try "
+                 "coming back later."
                  "\n".format(channel, newcomer, greeter_string(channel_greeters)))
 
 # Checks and manages the status of newcomers.
@@ -187,9 +187,9 @@ def bot_hello(greeting, actor, ircsock, channel):
 
 # Explains what the bot is when queried.
 def bot_help(ircsock, channel):
-    ircsock.send("PRIVMSG {} :I'm a bot!  I'm from here <https://github"
-                 ".com/shaunagm/oh-irc-bot>.  You can change my behavior by "
-                 "submitting a pull request or by talking to shauna"
+    ircsock.send("PRIVMSG {} :I'm a bot!  I'm a fork of shauna's welcomebot,"
+		 " you can checkout my internals and contribute here: "
+                 "https://github.com/falconry/WelcomeBot"
                  ".\n".format(channel))
 
 # Returns a grammatically correct string of the channel_greeters.
