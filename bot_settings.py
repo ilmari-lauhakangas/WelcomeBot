@@ -2,7 +2,7 @@
 
 # IRC configuration
 channel = "#falconframework"
-botnick = "Elaenor"
+botnick = "elaenor"
 server = "irc.freenode.net"
 registered = False
 
@@ -21,6 +21,6 @@ welcome_message = ("Welcome! The channel is pretty quiet "
                    ' '.join(channel_greeters) +
                    "). "
                    "I'm a bot! If no one responds for "
-                   "a while, try emailing us at "
-                   "users@mail.falconframework.org or just try "
-                   "coming back later.")
+                   "a while, try visiting our Google Group at "
+                   "https://groups.google.com/d/forum/falconframework "
+                   "or just try coming back later.")
