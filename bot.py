@@ -17,8 +17,8 @@ class Bot(object):
     def __init__(self, botnick=settings.botnick, welcome_message=settings.welcome_message,
         nick_source=settings.nick_source, wait_time=settings.wait_time,
         hello_list=settings.hello_list, help_list=settings.help_list):
-    	self.botnick = botnick
-    	self.welcome_message = welcome_message
+        self.botnick = botnick
+        self.welcome_message = welcome_message
         self.nick_source = nick_source
         self.wait_time = wait_time
         self.known_nicks = []
@@ -45,7 +45,7 @@ class NewComer(object):
 
     def __init__(self, nick, bot):
         self.nick = nick
-	self.clean_nick = clean_nick(self.nick)
+        self.clean_nick = clean_nick(self.nick)
         self.born = time.time()
         bot.newcomers.append(self)
 
@@ -100,19 +100,20 @@ def get_regex(options, botnick):
 #########################
 
 # Welcomes the "person" passed to it.
-def welcome_nick(newcomer, ircsock, channel, channel_greeters):
-    ircsock.send("PRIVMSG {0} :Welcome {1}!  The channel is pretty quiet "
-                 "right now, so I thought I'd say hello, and ping some people "
-                 "(like {2}) that you're here. I'm a bot! If no one responds for a "
-                 "while, try emailing us at users@mail.falconframework.org or just try "
-                 "coming back later."
-                 "\n".format(channel, newcomer, greeter_string(channel_greeters)))
+def welcome_nick(bot, newcomer, ircsock, channel, channel_greeters):
+    welcome = bot.welcome_message.format(
+        newcomer=newcomer,
+        greeter_string=greeter_string(channel_greeters)
+    )
+
+    command = "PRIVMSG {0} :{1}\n".format(channel, welcome)
+    ircsock.send(command)
 
 # Checks and manages the status of newcomers.
 def process_newcomers(bot, newcomerlist, ircsock, channel, greeters, welcome=1):
     for person in newcomerlist:
         if welcome == 1:
-            welcome_nick(person.nick, ircsock, channel, greeters)
+            welcome_nick(bot, person.nick, ircsock, channel, greeters)
         bot.add_known_nick(person.nick)
         bot.newcomers.remove(person)
 
@@ -153,7 +154,7 @@ def message_response(bot, ircmsg, actor, ircsock, channel, greeters):
         for i in bot.newcomers: # if that person was in the newlist
             if i.nick == actor:
                 i.nick = ircmsg.split(":")[2] # update to new nick (and clean up the nick)
-		i.clean_nick = clean_nick(i.nick)
+                i.clean_nick = clean_nick(i.nick)
 
     # If someone parts or quits the #channel...
     if ircmsg.find("PART " + channel) != -1 or ircmsg.find("QUIT") != -1:
@@ -187,8 +188,8 @@ def bot_hello(greeting, actor, ircsock, channel):
 
 # Explains what the bot is when queried.
 def bot_help(ircsock, channel):
-    ircsock.send("PRIVMSG {} :I'm a bot!  I'm a fork of shauna's welcomebot,"
-		 " you can checkout my internals and contribute here: "
+    ircsock.send("PRIVMSG {} :I'm a bot!  I'm a fork of shauna's welcomebot, "
+                 "you can checkout my internals and contribute here: "
                  "https://github.com/falconry/WelcomeBot"
                  ".\n".format(channel))
 

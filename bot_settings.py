@@ -19,6 +19,6 @@ welcome_message = ("Welcome {newcomer}! The channel is pretty quiet "
                    "hello, and ping some people that "
                    "you're here (like {greeter_string}). "
                    "I'm a bot! If no one responds for "
-                   "a while, try visiting our Google Group at "
+                   "a while, try visiting our discussion group at "
                    "https://groups.google.com/d/forum/falconframework "
                    "or just try coming back later.")
