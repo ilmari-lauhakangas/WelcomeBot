@@ -9,17 +9,15 @@ registered = False
 # Bot behavior
 wait_time = 60
 channel_greeters = ["kgriffs", "jvrbanac"]
-nick_source = "nicks.csv"
+nick_source = "/opt/WelcomeBot/nicks.csv"
 
 # Bot text
 hello_list = ["hello", "hi", "hey", "yo", "sup"]
 help_list = ["help", "info", "faq", "explain_yourself"]
-welcome_message = ("Welcome! The channel is pretty quiet "
+welcome_message = ("Welcome {newcomer}! The channel is pretty quiet "
                    "right now, so I thought I'd say "
                    "hello, and ping some people that "
-                   "you're here (like " +
-                   ' '.join(channel_greeters) +
-                   "). "
+                   "you're here (like {greeter_string}). "
                    "I'm a bot! If no one responds for "
                    "a while, try visiting our Google Group at "
                    "https://groups.google.com/d/forum/falconframework "
