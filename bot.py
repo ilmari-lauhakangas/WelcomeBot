@@ -142,6 +142,7 @@ def parse_messages(ircmsg):
 def clean_nick(nick):
     nick = nick.rstrip('_1234567890')
     nick = nick.split('|', 1)[0]  # Returns same nick if '|' is absent
+    nick = nick.lower()
 
     return nick
 
