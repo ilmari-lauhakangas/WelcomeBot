@@ -1,5 +1,7 @@
 # Yay tests!
 
+# TODO(kgriffs): These are wildly out of date; redo tests with pytest and tox
+
 import csv
 import unittest
 import bot as botcode

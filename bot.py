@@ -1,7 +1,7 @@
 # Welcome to WelcomeBot.  Find source, documentation, etc here: https://github.com/shaunagm/WelcomeBot/  Licensed https://creativecommons.org/licenses/by-sa/2.0/
 
 # Import some necessary libraries.
-import socket, sys, time, csv, Queue, random, re, pdb, select, os.path
+import socket, sys, time, csv, Queue, random, re, pdb, select, os.path, json
 from threading import Thread
 
 # To configure bot, please make changes in bot_settings.py
@@ -21,33 +21,44 @@ class Bot(object):
         self.welcome_message = welcome_message
         self.nick_source = nick_source
         self.wait_time = wait_time
-        self.known_nicks = []
-        with open(self.nick_source, 'rb') as csv_file:
-            csv_file_data = csv.reader(csv_file, delimiter=',', quotechar='|')
-            for row in csv_file_data:
-                row = clean_nick(row[0])    # Sends nicks to remove unnecessary decorators. Hacked to deal with list-of-string format. :(
-                self.known_nicks.append([row])
+        self.known_nicks = set()
         self.newcomers = []
         self.hello_regex = re.compile(get_regex(hello_list, botnick), re.I)  # Regexed version of hello list
         self.help_regex = re.compile(get_regex(help_list, botnick), re.I)  # Regexed version of help list
 
-    # Adds the current newcomer's nick to nicks.csv and known_nicks.
-    def add_known_nick(self,new_known_nick):
-        new_known_nick = new_known_nick.replace("_", "")
-        self.known_nicks.append([new_known_nick])
-        with open(self.nick_source, 'a') as csvfile:
-            nickwriter = csv.writer(csvfile, delimiter=',', quotechar='|',
-                                quoting=csv.QUOTE_MINIMAL)
-            nickwriter.writerow([new_known_nick])
+    def add_known_nick(self, clean_nick):
+        """Add the current newcomer's nick to nicks.csv and known_nicks."""
+        self.known_nicks.add(clean_nick)
+        self.save_nicks()
 
-# Defines a newcomer object
+    def add_newcomer(self, nick):
+        self.newcomers.append(NewComer(nick))
+
+    def save_nicks(self):
+        with open(self.nick_source, 'w') as nick_file:
+            json.dump(
+                { 'nicks': list(self.known_nicks) },
+                nick_file,
+                ensure_ascii=False,
+                encoding='utf-8',
+                indent=4,
+            )
+
+    def load_nicks(self):
+        try:
+            with open(self.nick_source, 'r') as nick_file:
+                doc = json.load(nick_file, encoding='utf-8')
+                self.known_nicks.update(doc['nicks'])
+
+        except IOError as ex:  # File not found; ignore
+            print('{} not found; no nicks loaded',format(self.nick_source))
+
 class NewComer(object):
 
-    def __init__(self, nick, bot):
+    def __init__(self, nick):
         self.nick = nick
         self.clean_nick = clean_nick(self.nick)
         self.born = time.time()
-        bot.newcomers.append(self)
 
     def around_for(self):
         return time.time() - self.born
@@ -110,11 +121,13 @@ def welcome_nick(bot, newcomer, ircsock, channel, channel_greeters):
     ircsock.send(command)
 
 # Checks and manages the status of newcomers.
-def process_newcomers(bot, newcomerlist, ircsock, channel, greeters, welcome=1):
-    for person in newcomerlist:
+def process_newcomers(bot, ircsock, channel, greeters, welcome=1):
+    newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time]
+    for person in newcomers:
         if welcome == 1:
             welcome_nick(bot, person.nick, ircsock, channel, greeters)
-        bot.add_known_nick(person.nick)
+
+        bot.add_known_nick(person.clean_nick)
         bot.newcomers.remove(person)
 
 # Checks for messages.
@@ -126,28 +139,25 @@ def parse_messages(ircmsg):
         return None, None
 
 # Cleans a nickname of decorators/identifiers
-def clean_nick(actor):
-    if actor:   # In case an empty string gets passed
-        if actor.find("openhatch") != -1:  # If nick is like "openhatch_1234" don't clean.
-            return actor
-        actor = actor.replace("_", "")  # Strip out trailing _ characters
-        while(actor[-1]) in "1234567890": # Remove trailing numbers
-            actor = actor[:-1]
-        if ('|' in actor):  # Remove location specifiers, etc.
-            actor = actor.split('|')[0]
-    return actor
+def clean_nick(nick):
+    nick = nick.rstrip('_1234567890')
+    nick = nick.split('|', 1)[0]  # Returns same nick if '|' is absent
 
-# Parses messages and responds to them appropriately.
+    return nick
+
+# Parses messages and respond to them appropriately.
 def message_response(bot, ircmsg, actor, ircsock, channel, greeters):
+    clean_actor = clean_nick(actor)
+    clean_newcomers = [i.clean_nick for i in bot.newcomers]
 
     # if someone other than a newcomer speaks into the channel
-    if ircmsg.find("PRIVMSG " + channel) != -1 and actor not in [i.nick for i in bot.newcomers]:
-        process_newcomers(bot,bot.newcomers, ircsock, channel, greeters, welcome=0)   # Process/check newcomers without welcoming them
+    if ircmsg.find("PRIVMSG " + channel) != -1 and clean_actor not in clean_newcomers:
+        process_newcomers(bot, ircsock, channel, greeters, welcome=0)   # Process/check newcomers without welcoming them
 
     # if someone (other than the bot) joins the channel
     if ircmsg.find("JOIN " + channel) != -1 and actor != bot.botnick:
-        if [actor.replace("_", "")] not in bot.known_nicks + [i.nick for i in bot.newcomers]:  # And they're new
-            NewComer(actor, bot)
+        if clean_actor not in bot.known_nicks and clean_actor not in clean_newcomers:
+            bot.add_newcomer(actor)
 
     # if someone changes their nick while still in newcomers update that nick
     if ircmsg.find("NICK :") != -1 and actor != bot.botnick:
@@ -159,14 +169,14 @@ def message_response(bot, ircmsg, actor, ircsock, channel, greeters):
     # If someone parts or quits the #channel...
     if ircmsg.find("PART " + channel) != -1 or ircmsg.find("QUIT") != -1:
         for i in bot.newcomers:  # and that person is on the newlist
-            if clean_nick(actor) == i.clean_nick:
+            if clean_actor == i.clean_nick:
                 bot.newcomers.remove(i)   # remove them from the list
 
     # If someone talks to (or refers to) the bot.
     if bot.botnick.lower() and "PRIVMSG".lower() in ircmsg.lower():
         if bot.hello_regex.search(ircmsg):
             bot_hello(random.choice(settings.hello_list), actor, ircsock, channel)
-        if bot.help_regex.search(ircmsg):
+        elif bot.help_regex.search(ircmsg):
             bot_help(ircsock, channel)
 
     # If someone tries to change the wait time...
@@ -235,15 +245,21 @@ def pong(ircsock, ircmsg):
 def main():
     ircsock = irc_start(settings.server)
     join_irc(ircsock, settings.botnick, settings.channel)
-    WelcomeBot = Bot()
+
+    bot = Bot()
+    bot.load_nicks()
+
     while 1:  # Loop forever
         ready_to_read, b, c = select.select([ircsock],[],[], 1)  # b&c are ignored here
-        process_newcomers(WelcomeBot, [i for i in WelcomeBot.newcomers if i.around_for() > WelcomeBot.wait_time], ircsock,settings.channel, settings.channel_greeters)
+
+        process_newcomers(bot, ircsock, settings.channel, settings.channel_greeters)
+
         if ready_to_read:
             ircmsg = msg_handler(ircsock) # gets message from ircsock
             ircmsg, actor = parse_messages(ircmsg)  # parses it or returns None
             if ircmsg is not None: # If we were able to parse it
-                message_response(WelcomeBot, ircmsg, actor, ircsock, settings.channel, settings.channel_greeters)  # Respond to the parsed message
+                message_response(bot, ircmsg, actor, ircsock, settings.channel, settings.channel_greeters)  # Respond to the parsed message
 
-if __name__ == "__main__": # This line tells the interpreter to only execute main() if the program is being run, not imported.
+
+if __name__ == "__main__":
     sys.exit(main())

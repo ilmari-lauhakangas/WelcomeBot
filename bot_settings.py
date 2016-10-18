@@ -9,7 +9,7 @@ registered = False
 # Bot behavior
 wait_time = 60
 channel_greeters = ["kgriffs", "jvrbanac"]
-nick_source = "/opt/WelcomeBot/nicks.csv"
+nick_source = "/opt/WelcomeBot/nicks.json"
 
 # Bot text
 hello_list = ["hello", "hi", "hey", "yo", "sup"]
