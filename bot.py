@@ -272,7 +272,11 @@ def main():
     bot.load_nicks()
 
     while 1:  # Loop forever
-        ready_to_read, _, _ = select.select([ircsock], [], [], 1)  # wlist, xlist are ignored here
+        wait_time = bot.wait_time - max([person.around_for() for person in bot.newcomers])
+        if wait_time < 0:
+            wait_time = 1
+
+        ready_to_read, _, _ = select.select([ircsock], [], [], wait_time)  # wlist, xlist are ignored here
 
         process_newcomers(bot, ircsock, settings.channel, settings.channel_greeters)
 
