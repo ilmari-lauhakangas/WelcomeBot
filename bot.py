@@ -35,9 +35,9 @@ class Bot(object):
         self.hello_regex = re.compile(get_regex(hello_list, botnick), re.I)  # Regexed version of hello list
         self.help_regex = re.compile(get_regex(help_list, botnick), re.I)  # Regexed version of help list
 
-    def add_known_nick(self, clean_nick):
+    def add_known_nick(self, nick):
         """Add the current newcomer's nick to nicks.csv and known_nicks."""
-        self.known_nicks.add(clean_nick)
+        self.known_nicks.add(nick)
         self.save_nicks()
 
     def add_newcomer(self, nick):
@@ -131,10 +131,10 @@ def welcome_nick(bot, newcomer, ircsock, channel, channel_greeters):
 
 
 # Checks and manages the status of newcomers.
-def process_newcomers(bot, ircsock, channel, greeters, welcome=1):
+def process_newcomers(bot, ircsock, channel, greeters, welcome=True):
     newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time]
     for person in newcomers:
-        if welcome == 1:
+        if welcome:
             welcome_nick(bot, person.nick, ircsock, channel, greeters)
 
         bot.add_known_nick(person.clean_nick)
@@ -146,7 +146,7 @@ def parse_messages(ircmsg):
     try:
         actor = ircmsg.split(":")[1].split("!")[0]  # and get the nick of the msg sender
         return " ".join(ircmsg.split()), actor
-    except:
+    except IndexError:
         return None, None
 
 
@@ -162,11 +162,11 @@ def clean_nick(nick):
 # Parses messages and respond to them appropriately.
 def message_response(bot, ircmsg, actor, ircsock, channel, greeters):
     clean_actor = clean_nick(actor)
-    clean_newcomers = [i.clean_nick for i in bot.newcomers]
+    clean_newcomers = [person.clean_nick for person in bot.newcomers]
 
     # if someone other than a newcomer speaks into the channel
     if ircmsg.find("PRIVMSG " + channel) != -1 and clean_actor not in clean_newcomers:
-        process_newcomers(bot, ircsock, channel, greeters, welcome=0)  # Process/check newcomers without welcoming them
+        process_newcomers(bot, ircsock, channel, greeters, welcome=False)  # Process/check newcomers without welcoming them
 
     # if someone (other than the bot) joins the channel
     if ircmsg.find("JOIN " + channel) != -1 and actor != bot.botnick:
@@ -175,19 +175,19 @@ def message_response(bot, ircmsg, actor, ircsock, channel, greeters):
 
     # if someone changes their nick while still in newcomers update that nick
     if ircmsg.find("NICK :") != -1 and actor != bot.botnick:
-        for i in bot.newcomers:  # if that person was in the newlist
-            if i.nick == actor:
-                i.nick = ircmsg.split(":")[2]  # update to new nick (and clean up the nick)
-                i.clean_nick = clean_nick(i.nick)
+        for person in bot.newcomers:  # if that person was in the newlist
+            if person.nick == actor:
+                person.nick = ircmsg.split(":")[2]  # update to new nick (and clean up the nick)
+                person.clean_nick = clean_nick(person.nick)
 
     # If someone parts or quits the #channel...
     if ircmsg.find("PART " + channel) != -1 or ircmsg.find("QUIT") != -1:
-        for i in bot.newcomers:  # and that person is on the newlist
-            if clean_actor == i.clean_nick:
-                bot.newcomers.remove(i)  # remove them from the list
+        for person in bot.newcomers:  # and that person is on the newlist
+            if clean_actor == person.clean_nick:
+                bot.newcomers.remove(person)  # remove them from the list
 
     # If someone talks to (or refers to) the bot.
-    if bot.botnick.lower() and "PRIVMSG".lower() in ircmsg.lower():
+    if bot.botnick.lower() in ircmsg.lower() and "PRIVMSG".lower() in ircmsg.lower():
         if bot.hello_regex.search(ircmsg):
             bot_hello(random.choice(settings.hello_list), actor, ircsock, channel)
         elif bot.help_regex.search(ircmsg):
@@ -254,7 +254,7 @@ def pong(ircsock, ircmsg):
     msg_send(ircsock, response)
 
 
-def signal_handler(signal, frame):
+def signal_handler(signum, frame):
     print('Exit')
     sys.exit(0)
 
