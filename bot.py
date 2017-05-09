@@ -272,7 +272,11 @@ def main():
     bot.load_nicks()
 
     while 1:  # Loop forever
-        wait_time = bot.wait_time - max([person.around_for() for person in bot.newcomers])
+        wait_time = bot.wait_time
+
+        if bot.newcomers:
+            wait_time -= max([person.around_for() for person in bot.newcomers])
+
         if wait_time < 0:
             wait_time = 1
 
