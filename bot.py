@@ -94,11 +94,10 @@ def join_irc(ircsock, botnick, channel):
     msg_send(ircsock, "USER {0} {0} {0} :This is http://falcon.readthedocs.io/en/stable/"
                       "greeter bot.\n".format(botnick))  # bot authentication
     msg_send(ircsock, "NICK {}\n".format(botnick))  # Assign the nick to the bot.
-    if os.path.isfile("password.txt"):
+    if os.path.isfile("password.txt") and settings.registered is True:
         with open("password.txt", 'r') as f:
             password = f.read()
-            if settings.registered is True:
-                msg_send(ircsock, "PRIVMSG {} {} {} {}".format("NickServ", "IDENTIFY", botnick, password))
+            msg_send(ircsock, "PRIVMSG {} {} {} {}".format("NickServ", "IDENTIFY", botnick, password))
     msg_send(ircsock, "JOIN {} \n".format(channel))  # Joins channel
 
 
