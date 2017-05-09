@@ -25,12 +25,14 @@ import bot_settings as settings
 class Bot(object):
     def __init__(self, botnick=settings.botnick, welcome_message=settings.welcome_message,
                  nick_source=settings.nick_source, wait_time=settings.wait_time,
-                 hello_list=settings.hello_list, help_list=settings.help_list):
+                 hello_list=settings.hello_list, help_list=settings.help_list,
+                 bots=settings.bots):
         self.botnick = botnick
         self.welcome_message = welcome_message
         self.nick_source = nick_source
         self.wait_time = wait_time
         self.known_nicks = set()
+        self.known_bots = bots
         self.newcomers = []
         self.hello_regex = re.compile(get_regex(hello_list, botnick), re.I)  # Regexed version of hello list
         self.help_regex = re.compile(get_regex(help_list, botnick), re.I)  # Regexed version of help list
@@ -164,13 +166,13 @@ def message_response(bot, ircmsg, actor, ircsock, channel, greeters):
     clean_actor = clean_nick(actor)
     clean_newcomers = [person.clean_nick for person in bot.newcomers]
 
-    # if someone other than a newcomer speaks into the channel
-    if ircmsg.find("PRIVMSG " + channel) != -1 and clean_actor not in clean_newcomers:
+    # if someone other than a newcomer or bot speaks into the channel
+    if ircmsg.find("PRIVMSG " + channel) != -1 and clean_actor not in bot.known_bots + clean_newcomers:
         process_newcomers(bot, ircsock, channel, greeters, welcome=False)  # Process/check newcomers without welcoming them
 
     # if someone (other than the bot) joins the channel
     if ircmsg.find("JOIN " + channel) != -1 and actor != bot.botnick:
-        if clean_actor not in bot.known_nicks and clean_actor not in clean_newcomers:
+        if clean_actor not in bot.known_bots + bot.known_nicks + clean_newcomers:
             bot.add_newcomer(actor)
 
     # if someone changes their nick while still in newcomers update that nick
