@@ -48,7 +48,7 @@ class Bot(object):
         self.newcomers.append(NewComer(nick))
 
     def save_nicks(self):
-        self.load_nicks() # in case other bot instance saved it already
+        self.load_nicks()  # in case other bot instance saved it already
         with open(self.nick_source, 'w') as nick_file:
             json.dump(
                 {'nicks': list(self.known_nicks)},
@@ -288,9 +288,12 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     ircsock = irc_start(settings.server)
-    join_irc(ircsock, settings.botnick, settings.channel)
 
-    bots = [Bot(channel) for channel in settings.channel.split(',')]
+    channels = [channel for channel in settings.channels if settings.channels[channel]['join']]
+
+    join_irc(ircsock, settings.botnick, ','.join(channels))
+
+    bots = [Bot(channel) for channel in channels]
 
     for bot in bots:
         bot.load_nicks()
@@ -301,7 +304,7 @@ def main():
         ready_to_read, _, _ = select.select([ircsock], [], [], wait_time)  # wlist, xlist are ignored here
 
         for bot in bots:
-            process_newcomers(bot, ircsock, settings.channel_greeters)
+            process_newcomers(bot, ircsock, settings.channels[bot.channel]['greeters'])
 
         if ready_to_read:
             ircmsg = msg_handler(ircsock)  # gets message from ircsock
@@ -309,7 +312,7 @@ def main():
             if ircmsg is not None:  # If we were able to parse it
                 # Respond to the parsed message
                 for bot in bots:
-                    message_response(bot, ircmsg, actor, ircsock, settings.channel_greeters)
+                    message_response(bot, ircmsg, actor, ircsock, settings.channels[bot.channel]['greeters'])
 
 
 if __name__ == "__main__":

@@ -1,14 +1,14 @@
 # Replace these default settings with your own personal settings
 
 # IRC configuration
-channel = "#falconframework"
 botnick = "elaenor"
 server = "irc.freenode.net"
+channels = {"#falconframework": {'greeters': ["kgriffs", "jvrbanac"],
+                                 'join': True}}
 registered = False
 
 # Bot behavior
 wait_time = 60
-channel_greeters = ["kgriffs", "jvrbanac"]
 nick_source = "/opt/WelcomeBot/nicks.json"
 bots = []
 
