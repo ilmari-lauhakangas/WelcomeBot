@@ -315,12 +315,13 @@ def main():
             process_newcomers(bot, ircsock, settings.channels[bot.channel]['greeters'])
 
         if ready_to_read:
-            ircmsg = msg_handler(ircsock)  # gets message from ircsock
-            ircmsg, actor = parse_messages(ircmsg)  # parses it or returns None
-            if ircmsg is not None:  # If we were able to parse it
-                # Respond to the parsed message
-                for bot in bots:
-                    message_response(bot, ircmsg, actor, ircsock, settings.channels[bot.channel]['greeters'])
+            msg_recv = msg_handler(ircsock)  # gets message from ircsock
+            for ircmsg in msg_recv.split('\r\n'):
+                ircmsg, actor = parse_messages(ircmsg)  # parses it or returns None
+                if ircmsg is not None:  # If we were able to parse it
+                    # Respond to the parsed message
+                    for bot in bots:
+                        message_response(bot, ircmsg, actor, ircsock, settings.channels[bot.channel]['greeters'])
 
 
 if __name__ == "__main__":
