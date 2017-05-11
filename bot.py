@@ -16,6 +16,7 @@ import signal
 # To configure bot, please make changes in bot_settings.py
 import bot_settings as settings
 
+PY3 = sys.version_info > (3,)
 
 #####################
 # Class Definitions #
@@ -50,18 +51,25 @@ class Bot(object):
     def save_nicks(self):
         self.load_nicks()  # in case other bot instance saved it already
         with open(self.nick_source, 'w') as nick_file:
-            json.dump(
-                {'nicks': list(self.known_nicks)},
-                nick_file,
-                ensure_ascii=False,
-                encoding='utf-8',
-                indent=4,
-            )
+            if PY3:
+                json.dump({'nicks': list(self.known_nicks)},
+                          nick_file,
+                          ensure_ascii=False,
+                          indent=4)
+            else:
+                json.dump({'nicks': list(self.known_nicks)},
+                          nick_file,
+                          ensure_ascii=False,
+                          indent=4,
+                          encoding='utf-8')
 
     def load_nicks(self):
         try:
             with open(self.nick_source, 'r') as nick_file:
-                doc = json.load(nick_file, encoding='utf-8')
+                if PY3:
+                    doc = json.load(nick_file)
+                else:
+                    doc = json.load(nick_file, encoding='utf-8')
                 self.known_nicks.update(doc['nicks'])
         except IOError:  # File not found; ignore
             print('{} not found; no nicks loaded'.format(self.nick_source))
