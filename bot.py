@@ -38,8 +38,13 @@ class Bot(object):
         self.known_nicks = set()
         self.known_bots = bots
         self.newcomers = []
-        self.hello_regex = re.compile(get_regex(hello_list, botnick), re.I)  # Regexed version of hello list
-        self.help_regex = re.compile(get_regex(help_list, botnick), re.I)  # Regexed version of help list
+        self.hello_regex = re.compile(self._get_regex(hello_list), re.I)  # Regexed version of hello list
+        self.help_regex = re.compile(self._get_regex(help_list), re.I)  # Regexed version of help list
+
+    def _get_regex(self, options):
+        """Builds a regex that matches one of the options + (space) bot nick."""
+        pattern = "({}).({})".format('|'.join(options), self.botnick)
+        return pattern
 
     def add_known_nick(self, nick):
         """Add the current newcomer's nick to nicks.csv and known_nicks."""
@@ -138,12 +143,6 @@ def msg_handler(ircsock):  # pragma: no cover  (this excludes this function from
     new_msg = new_msg.strip('\n\r')  # removing any unnecessary linebreaks
     print(new_msg)  # TODO Potentially make this a log instead?
     return new_msg
-
-
-# Called by bot on startup.  Builds a regex that matches one of the options + (space) botnick.
-def get_regex(options, botnick):
-    pattern = "({}).({})".format('|'.join(options), botnick)
-    return pattern
 
 
 #####################
