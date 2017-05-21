@@ -23,6 +23,38 @@ PY3 = sys.version_info > (3,)
 #####################
 
 
+class IrcConnection(object):
+    """Creates a socket that will be used to send and receive messages"""
+
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def start(self, server):  # pragma: no cover  (this excludes this function from testing)
+        """Connects the socket to an IRC server"""
+        self.sock.connect((server, 6667))  # Here we connect to server using port 6667.
+
+    def wait(self, timeout):
+        rlist, _, _ = select.select([self.sock], [], [], timeout)  # wlist, xlist are ignored here
+        return rlist
+
+    def recv(self):  # pragma: no cover  (this excludes this function from testing)
+        """Reads the messages from the server and prints them to the console"""
+        msg = self.sock.recv(2048)  # receive data from the server
+        if PY3:
+            try:
+                msg = msg.decode('utf-8')
+            except UnicodeDecodeError:
+                msg = msg.decode('iso-8859-1')  # Latin-1
+        msg = msg.strip('\n\r')  # removing any unnecessary linebreaks
+        print(msg)  # TODO Potentially make this a log instead?
+        return msg
+
+    def send(self, msg):
+        if PY3:
+            msg = msg.encode('utf-8')
+        self.sock.send(msg)
+
+
 # Defines a bot
 class Bot(object):
     def __init__(self, channel,
@@ -106,43 +138,16 @@ class NewComer(object):
 # Startup Functions #
 #####################
 
-# Creates a socket that will be used to send and receive messages,
-# then connects the socket to an IRC server and joins the channel.
-def irc_start(server):  # pragma: no cover  (this excludes this function from testing)
-    ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ircsock.connect((server, 6667))  # Here we connect to server using port 6667.
-    return ircsock
-
-
-def msg_send(ircsock, msg):
-    if PY3:
-        msg = msg.encode('utf-8')
-    ircsock.send(msg)
-
-
-def join_irc(ircsock, botnick, channel):
-    msg_send(ircsock, "USER {0} {0} {0} :This is http://falcon.readthedocs.io/en/stable/"
-                      "greeter bot.\n".format(botnick))  # bot authentication
-    msg_send(ircsock, "NICK {}\n".format(botnick))  # Assign the nick to the bot.
+# Joins the channel.
+def join_irc(ircconn, botnick, channel):
+    ircconn.send("USER {0} {0} {0} :This is http://falcon.readthedocs.io/en/stable/"
+                 "greeter bot.\n".format(botnick))  # bot authentication
+    ircconn.send("NICK {}\n".format(botnick))  # Assign the nick to the bot.
     if os.path.isfile("password.txt") and settings.registered is True:
         with open("password.txt", 'r') as f:
             password = f.read()
-            msg_send(ircsock, "PRIVMSG {} {} {} {}".format("NickServ", "IDENTIFY", botnick, password))
-    msg_send(ircsock, "JOIN {} \n".format(channel))  # Joins channel
-
-
-# Reads the messages from the server and adds them to the Queue and prints
-# them to the console. This function will be run in a thread, see below.
-def msg_handler(ircsock):  # pragma: no cover  (this excludes this function from testing)
-    new_msg = ircsock.recv(2048)  # receive data from the server
-    if PY3:
-        try:
-            new_msg = new_msg.decode('utf-8')
-        except UnicodeDecodeError:
-            new_msg = new_msg.decode('iso-8859-1')  # Latin-1
-    new_msg = new_msg.strip('\n\r')  # removing any unnecessary linebreaks
-    print(new_msg)  # TODO Potentially make this a log instead?
-    return new_msg
+            ircconn.send("PRIVMSG {} {} {} {}".format("NickServ", "IDENTIFY", botnick, password))
+    ircconn.send("JOIN {} \n".format(channel))  # Joins channel
 
 
 #####################
@@ -150,22 +155,22 @@ def msg_handler(ircsock):  # pragma: no cover  (this excludes this function from
 #####################
 
 # Welcomes the "person" passed to it.
-def welcome_nick(bot, newcomer, ircsock, channel_greeters):
+def welcome_nick(bot, newcomer, ircconn, channel_greeters):
     welcome = bot.welcome_message.format(
         newcomer=newcomer,
         greeter_string=greeter_string(channel_greeters)
     )
 
     command = "PRIVMSG {0} :{1}\n".format(bot.channel, welcome)
-    msg_send(ircsock, command)
+    ircconn.send(command)
 
 
 # Checks and manages the status of newcomers.
-def process_newcomers(bot, ircsock, greeters, welcome=True):
+def process_newcomers(bot, ircconn, greeters, welcome=True):
     newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time]
     for person in newcomers:
         if welcome:
-            welcome_nick(bot, person.nick, ircsock, greeters)
+            welcome_nick(bot, person.nick, ircconn, greeters)
 
         bot.add_known_nick(person.clean_nick)
         bot.newcomers.remove(person)
@@ -190,13 +195,13 @@ def clean_nick(nick):
 
 
 # Parses messages and respond to them appropriately.
-def message_response(bot, ircmsg, actor, ircsock, greeters):
+def message_response(bot, ircmsg, actor, ircconn, greeters):
     clean_actor = clean_nick(actor)
     clean_newcomers = [person.clean_nick for person in bot.newcomers]
 
     # if someone other than a newcomer or bot speaks into the channel
     if ircmsg.find("PRIVMSG " + bot.channel) != -1 and clean_actor not in bot.known_bots + clean_newcomers:
-        process_newcomers(bot, ircsock, greeters, welcome=False)  # Process/check newcomers without welcoming them
+        process_newcomers(bot, ircconn, greeters, welcome=False)  # Process/check newcomers without welcoming them
 
     # if someone (other than the bot) joins the channel
     if ircmsg.find("JOIN " + bot.channel) != -1 and actor != bot.nick:
@@ -226,9 +231,9 @@ def message_response(bot, ircmsg, actor, ircsock, greeters):
     # If someone talks to (or refers to) the bot.
     if bot.nick.lower() in ircmsg.lower() and target:
         if bot.hello_regex.search(ircmsg):
-            bot_hello(ircsock, target, random.choice(settings.hello_list), actor)
+            bot_hello(ircconn, target, random.choice(settings.hello_list), actor)
         elif bot.help_regex.search(ircmsg):
-            bot_help(ircsock, target)
+            bot_help(ircconn, target)
 
     # If someone tries to change the wait time...
     if ircmsg.find(bot.nick + " --wait-time ") != -1 and target:
@@ -236,11 +241,11 @@ def message_response(bot, ircmsg, actor, ircsock, greeters):
         if finder:
             new_wait_time = int(finder.group(1))
             # call this to check and change it
-            bot.wait_time = wait_time_change(actor, new_wait_time, ircsock, target, greeters, bot)
+            bot.wait_time = wait_time_change(actor, new_wait_time, ircconn, target, greeters, bot)
 
     # If the server pings us then we've got to respond!
     if ircmsg.find("PING :") != -1:
-        pong(ircsock, ircmsg)
+        pong(ircconn, ircmsg)
 
 
 #########################################################
@@ -248,16 +253,16 @@ def message_response(bot, ircmsg, actor, ircsock, greeters):
 #########################################################
 
 # Responds to a user that inputs "Hello Mybot".
-def bot_hello(ircsock, target, greeting, actor):
-    msg_send(ircsock, "PRIVMSG {0} :{1} {2}\n".format(target, greeting, actor))
+def bot_hello(ircconn, target, greeting, actor):
+    ircconn.send("PRIVMSG {0} :{1} {2}\n".format(target, greeting, actor))
 
 
 # Explains what the bot is when queried.
-def bot_help(ircsock, target):
-    msg_send(ircsock, "PRIVMSG {} :I'm a bot!  I'm a fork of shauna's welcomebot, "
-                      "you can checkout my internals and contribute here: "
-                      "https://github.com/falconry/WelcomeBot"
-                      ".\n".format(target))
+def bot_help(ircconn, target):
+    ircconn.send("PRIVMSG {} :I'm a bot!  I'm a fork of shauna's welcomebot, "
+                 "you can checkout my internals and contribute here: "
+                 "https://github.com/falconry/WelcomeBot"
+                 ".\n".format(target))
 
 
 # Returns a grammatically correct string of the channel_greeters.
@@ -273,22 +278,22 @@ def greeter_string(greeters):
 
 
 # Changes the wait time from the channel.
-def wait_time_change(actor, new_wait_time, ircsock, target, channel_greeters, bot):
+def wait_time_change(actor, new_wait_time, ircconn, target, channel_greeters, bot):
     for admin in channel_greeters:
         if actor == admin:
-            msg_send(ircsock, "PRIVMSG {0} :{1} the wait time is changing to {2} "
-                              "seconds.\n".format(bot.channel, actor, new_wait_time))
+            ircconn.send("PRIVMSG {0} :{1} the wait time is changing to {2} "
+                         "seconds.\n".format(bot.channel, actor, new_wait_time))
             return new_wait_time
-    msg_send(ircsock, "PRIVMSG {0} :{1} you are not authorized to make that "
-                      "change. Please contact one of the channel greeters, like {2}, for "
-                      "assistance.\n".format(target, actor, greeter_string(channel_greeters)))
+    ircconn.send("PRIVMSG {0} :{1} you are not authorized to make that "
+                 "change. Please contact one of the channel greeters, like {2}, for "
+                 "assistance.\n".format(target, actor, greeter_string(channel_greeters)))
     return bot.wait_time
 
 
 # Responds to server Pings.
-def pong(ircsock, ircmsg):
+def pong(ircconn, ircmsg):
     response = "PONG :" + ircmsg.split("PING :")[1] + "\n"
-    msg_send(ircsock, response)
+    ircconn.send(response)
 
 
 def signal_handler(signum, frame):
@@ -302,11 +307,12 @@ def signal_handler(signum, frame):
 def main():
     signal.signal(signal.SIGINT, signal_handler)
 
-    ircsock = irc_start(settings.server)
+    ircconn = IrcConnection()
+    ircconn.start(settings.server)
 
     channels = [channel for channel in settings.channels if settings.channels[channel]['join']]
 
-    join_irc(ircsock, settings.botnick, ','.join(channels))
+    join_irc(ircconn, settings.botnick, ','.join(channels))
 
     bots = [Bot(channel) for channel in channels]
 
@@ -316,19 +322,19 @@ def main():
     while 1:  # Loop forever
         wait_time = min([bot.timeout() for bot in bots])
 
-        ready_to_read, _, _ = select.select([ircsock], [], [], wait_time)  # wlist, xlist are ignored here
+        ready_to_read = ircconn.wait(wait_time)
 
         for bot in bots:
-            process_newcomers(bot, ircsock, settings.channels[bot.channel]['greeters'])
+            process_newcomers(bot, ircconn, settings.channels[bot.channel]['greeters'])
 
         if ready_to_read:
-            msg_recv = msg_handler(ircsock)  # gets message from ircsock
+            msg_recv = ircconn.recv()  # gets message from ircconn
             for ircmsg in msg_recv.split('\r\n'):
                 ircmsg, actor = parse_messages(ircmsg)  # parses it or returns None
                 if ircmsg is not None:  # If we were able to parse it
                     # Respond to the parsed message
                     for bot in bots:
-                        message_response(bot, ircmsg, actor, ircsock, settings.channels[bot.channel]['greeters'])
+                        message_response(bot, ircmsg, actor, ircconn, settings.channels[bot.channel]['greeters'])
 
 
 if __name__ == "__main__":

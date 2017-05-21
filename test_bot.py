@@ -110,7 +110,7 @@ class TestJoinIRC(unittest.TestCase):
 
     def test_sent_messages(self):
         botcode.join_irc(self.ircsock, settings.botnick, settings.channel)
-        expected = ["USER {} {} {} :This is http://openhatch.org/'s greeter bot.\n".format(self.bot.botnick, self.bot.botnick, self.bot.botnick), 'NICK {}\n'.format(self.bot.botnick), 'JOIN {} \n'.format(settings.channel)]
+        expected = ["USER {} {} {} :This is http://openhatch.org/'s greeter bot.\n".format(self.bot.nick, self.bot.nick, self.bot.nick), 'NICK {}\n'.format(self.bot.nick), 'JOIN {} \n'.format(settings.channel)]
         self.assertEqual(self.ircsock.sent_messages,expected)
 
 class TestProcessNewcomers(unittest.TestCase):
@@ -124,15 +124,15 @@ class TestProcessNewcomers(unittest.TestCase):
         self.ircsock = fake_irc_start()
 
     def test_check_new_newcomers(self):
-        botcode.process_newcomers(self.bot, [i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time], ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters, welcome=0)
+        botcode.process_newcomers(self.bot, [i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time], ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters, welcome=0)
         self.assertEqual(len(self.bot.newcomers), 1)
 
     def test_check_new_known_nicks(self):
-        botcode.process_newcomers(self.bot, [i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time], ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters, welcome=0)
+        botcode.process_newcomers(self.bot, [i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time], ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters, welcome=0)
         self.assertEqual(self.bot.known_nicks,[['Alice'],['Bob'],['Harry'],['Hermione']])
 
     def test_welcome_nick(self):
-        botcode.process_newcomers(bot=self.bot, newcomerlist=[i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time], ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters, welcome=1)
+        botcode.process_newcomers(bot=self.bot, newcomerlist=[i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time], ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters, welcome=1)
         self.assertEqual(self.ircsock.sent_message(), "PRIVMSG {0} :Welcome Hermione!  The channel is pretty quiet right now, so I thought I'd say hello, and ping some people (like {1}) that you're here.  If no one responds for a while, try emailing us at hello@openhatch.org or just try coming back later.  FYI, you're now on my list of known nicknames, so I won't bother you again.\n".format(settings.channel,botcode.greeter_string(settings.channel_greeters)))
 
     def tearDown(self):
@@ -157,51 +157,51 @@ class TestMessageResponse(unittest.TestCase):
         self.ircsock = fake_irc_start()
 
     def test_newcomer_speaking(self):
-        botcode.message_response(self.bot,"~q@r.m.us PRIVMSG {} :hah".format(settings.channel),"Chappe", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)  # Standard message by newcomer
+        botcode.message_response(self.bot,"~q@r.m.us PRIVMSG {} :hah".format(settings.channel),"Chappe", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)  # Standard message by newcomer
         nicklist = [i.nick for i in self.bot.newcomers]   # Makes a list of newcomers nicks for easy asserting
         self.assertEqual(nicklist, ['Chappe'])
 
     def test_oldtimer_speaking(self):
-        botcode.message_response(self.bot,"~q@r.m.us PRIVMSG {} :hah".format(settings.channel),"Alice", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)  # Standard message by oldtimer
+        botcode.message_response(self.bot,"~q@r.m.us PRIVMSG {} :hah".format(settings.channel),"Alice", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)  # Standard message by oldtimer
         nicklist = [i.nick for i in self.bot.newcomers]   # Makes a list of newcomers nicks for easy asserting
         self.assertEqual(nicklist, [])
 
     def test_join(self):
-        botcode.message_response(self.bot,"JOIN {} right now!".format(settings.channel),"Shauna", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace with actual ping message
+        botcode.message_response(self.bot,"JOIN {} right now!".format(settings.channel),"Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace with actual ping message
         self.assertEqual(self.bot.newcomers[1].nick,'Shauna')
 
     def test_part(self):
-        botcode.message_response(self.bot,"JOIN {} right now!".format(settings.channel),"Shauna", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace with actual ping message
+        botcode.message_response(self.bot,"JOIN {} right now!".format(settings.channel),"Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace with actual ping message
         self.assertEqual(len(self.bot.newcomers), 2)
-        botcode.message_response(self.bot,"PART {}".format(settings.channel),"Shauna", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace with actual ping message
+        botcode.message_response(self.bot,"PART {}".format(settings.channel),"Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace with actual ping message
         self.assertEqual(len(self.bot.newcomers), 1)
 
     def test_hello(self):
-        botcode.message_response(self.bot,"PRIVMSG sup {}".format(self.bot.botnick),"Shauna", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)
+        botcode.message_response(self.bot,"PRIVMSG sup {}".format(self.bot.nick), "Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)
         self.assertTrue(self.ircsock.has_sent_message())
         self.assertIn(self.ircsock.sent_message(), ["PRIVMSG {} :hello Shauna\n".format(settings.channel), "PRIVMSG {} :hi Shauna\n".format(settings.channel), "PRIVMSG {} :hey Shauna\n".format(settings.channel), "PRIVMSG {} :yo Shauna\n".format(settings.channel), "PRIVMSG {} :sup Shauna\n".format(settings.channel)])
 
     def test_help(self):
-        botcode.message_response(self.bot,"PRIVMSG info {}".format(self.bot.botnick),"Shauna", ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)
+        botcode.message_response(self.bot,"PRIVMSG info {}".format(self.bot.nick), "Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)
         self.assertTrue(self.ircsock.has_sent_message())
         self.assertEqual(self.ircsock.sent_message(), "PRIVMSG {} :I'm a bot!  I'm from here <https://github.com/shaunagm/oh-irc-bot>.  You can change my behavior by submitting a pull request or by talking to shauna.\n".format(settings.channel))
 
     def test_wait_time_from_admin(self):
-        botcode.message_response(self.bot,"{} --wait-time 40".format(self.bot.botnick),"shauna",ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)     # Channel-greeters may also be changed.  :(
+        botcode.message_response(self.bot,"{} --wait-time 40".format(self.bot.nick), "shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)     # Channel-greeters may also be changed.  :(
         self.assertEqual(self.ircsock.sent_message(), "PRIVMSG {} :shauna the wait time is changing to 40 seconds.\n".format(settings.channel))
         self.assertEqual(self.bot.wait_time, 40)
 
     def test_wait_time_from_non_admin(self):
-        botcode.message_response(self.bot,"{} --wait-time 40".format(self.bot.botnick),"Impostor",ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)     # Channel-greeters may also be changed.  :(
+        botcode.message_response(self.bot,"{} --wait-time 40".format(self.bot.nick), "Impostor", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)     # Channel-greeters may also be changed.  :(
         self.assertEqual(self.ircsock.sent_message(), "PRIVMSG {0} :Impostor you are not authorized to make that change. Please contact one of the channel greeters, like {1}, for assistance.\n".format(settings.channel,botcode.greeter_string(settings.channel_greeters)))
         self.assertEqual(self.bot.wait_time, settings.wait_time)
 
     def test_pong(self):
-        botcode.message_response(self.bot,"PING :","Shauna",ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace this with actual ping message
+        botcode.message_response(self.bot,"PING :","Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace this with actual ping message
         self.assertEqual(self.ircsock.sent_message(),"PONG :\n")
 
     def test_bad_pong(self):
-        botcode.message_response(self.bot,"PING!!! :","Shauna",ircsock=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace this with actual ping message
+        botcode.message_response(self.bot,"PING!!! :","Shauna", ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters)   # Replace this with actual ping message
         self.assertFalse(self.ircsock.has_sent_message())
 
     def tearDown(self):
