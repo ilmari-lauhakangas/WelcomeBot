@@ -22,6 +22,7 @@ PY3 = sys.version_info > (3,)
 # Class Definitions #
 #####################
 
+
 # Defines a bot
 class Bot(object):
     def __init__(self, channel,
@@ -109,7 +110,9 @@ def irc_start(server):  # pragma: no cover  (this excludes this function from te
 
 
 def msg_send(ircsock, msg):
-    ircsock.send(msg.encode('utf-8'))
+    if PY3:
+        msg = msg.encode('utf-8')
+    ircsock.send(msg)
 
 
 def join_irc(ircsock, botnick, channel):
@@ -126,7 +129,12 @@ def join_irc(ircsock, botnick, channel):
 # Reads the messages from the server and adds them to the Queue and prints
 # them to the console. This function will be run in a thread, see below.
 def msg_handler(ircsock):  # pragma: no cover  (this excludes this function from testing)
-    new_msg = ircsock.recv(2048).decode('utf-8')  # receive data from the server
+    new_msg = ircsock.recv(2048)  # receive data from the server
+    if PY3:
+        try:
+            new_msg = new_msg.decode('utf-8')
+        except UnicodeDecodeError:
+            new_msg = new_msg.decode('iso-8859-1')  # Latin-1
     new_msg = new_msg.strip('\n\r')  # removing any unnecessary linebreaks
     print(new_msg)  # TODO Potentially make this a log instead?
     return new_msg
