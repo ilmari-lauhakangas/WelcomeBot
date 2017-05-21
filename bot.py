@@ -136,6 +136,14 @@ class Bot(object):
 
         return result
 
+    def change_wait_time(self, actor, wait_time):
+        actor_can_change = actor in self.greeters
+
+        if actor_can_change:
+            self.wait_time = wait_time
+
+        return actor_can_change
+
 
 class NewComer(object):
     def __init__(self, nick):
@@ -254,7 +262,7 @@ def message_response(bot, ircmsg, actor, ircconn):
         if finder:
             new_wait_time = int(finder.group(1))
             # call this to check and change it
-            bot.wait_time = wait_time_change(actor, new_wait_time, ircconn, target, bot)
+            wait_time_change(actor, new_wait_time, ircconn, target, bot)
 
     # If the server pings us then we've got to respond!
     if ircmsg.find("PING :") != -1:
@@ -280,15 +288,12 @@ def bot_help(ircconn, target):
 
 # Changes the wait time from the channel.
 def wait_time_change(actor, new_wait_time, ircconn, target, bot):
-    for admin in bot.greeters:
-        if actor == admin:
-            ircconn.send("PRIVMSG {0} :{1} the wait time is changing to {2} "
-                         "seconds.\n".format(bot.channel, actor, new_wait_time))
-            return new_wait_time
+    if bot.change_wait_time(actor, new_wait_time):
+        ircconn.send("PRIVMSG {0} :{1} the wait time is changing to {2} "
+                     "seconds.\n".format(bot.channel, actor, new_wait_time))
     ircconn.send("PRIVMSG {0} :{1} you are not authorized to make that "
                  "change. Please contact one of the channel greeters, like {2}, for "
                  "assistance.\n".format(target, actor, bot.greeters_string))
-    return bot.wait_time
 
 
 # Responds to server Pings.
