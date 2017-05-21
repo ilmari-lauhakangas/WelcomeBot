@@ -30,7 +30,7 @@ class Bot(object):
                  nick_source=settings.nick_source, wait_time=settings.wait_time,
                  hello_list=settings.hello_list, help_list=settings.help_list,
                  bots=settings.bots):
-        self.botnick = botnick
+        self.nick = botnick
         self.channel = channel
         self.welcome_message = welcome_message
         self.nick_source = nick_source
@@ -43,11 +43,11 @@ class Bot(object):
 
     def _get_regex(self, options):
         """Builds a regex that matches one of the options + (space) bot nick."""
-        pattern = "({}).({})".format('|'.join(options), self.botnick)
+        pattern = "({}).({})".format('|'.join(options), self.nick)
         return pattern
 
     def add_known_nick(self, nick):
-        """Add the current newcomer's nick to nicks.csv and known_nicks."""
+        """Add the current newcomer's nick to nicks.json and known_nicks."""
         self.known_nicks.add(nick)
         self.save_nicks()
 
@@ -199,12 +199,12 @@ def message_response(bot, ircmsg, actor, ircsock, greeters):
         process_newcomers(bot, ircsock, greeters, welcome=False)  # Process/check newcomers without welcoming them
 
     # if someone (other than the bot) joins the channel
-    if ircmsg.find("JOIN " + bot.channel) != -1 and actor != bot.botnick:
+    if ircmsg.find("JOIN " + bot.channel) != -1 and actor != bot.nick:
         if clean_actor not in bot.known_bots + list(bot.known_nicks) + clean_newcomers:
             bot.add_newcomer(actor)
 
     # if someone changes their nick while still in newcomers update that nick
-    if ircmsg.find("NICK :") != -1 and actor != bot.botnick:
+    if ircmsg.find("NICK :") != -1 and actor != bot.nick:
         for person in bot.newcomers:  # if that person was in the newlist
             if person.nick == actor:
                 person.nick = ircmsg.split(":")[2]  # update to new nick (and clean up the nick)
@@ -218,20 +218,20 @@ def message_response(bot, ircmsg, actor, ircsock, greeters):
 
     if ircmsg.find("PRIVMSG " + bot.channel) != -1:
         target = bot.channel
-    elif ircmsg.find("PRIVMSG " + bot.botnick) != -1:
+    elif ircmsg.find("PRIVMSG " + bot.nick) != -1:
         target = clean_actor
     else:
         target = None
 
     # If someone talks to (or refers to) the bot.
-    if bot.botnick.lower() in ircmsg.lower() and target:
+    if bot.nick.lower() in ircmsg.lower() and target:
         if bot.hello_regex.search(ircmsg):
             bot_hello(ircsock, target, random.choice(settings.hello_list), actor)
         elif bot.help_regex.search(ircmsg):
             bot_help(ircsock, target)
 
     # If someone tries to change the wait time...
-    if ircmsg.find(bot.botnick + " --wait-time ") != -1 and target:
+    if ircmsg.find(bot.nick + " --wait-time ") != -1 and target:
         finder = re.search(r'--wait-time (\d+)', ircmsg)
         if finder:
             new_wait_time = int(finder.group(1))
