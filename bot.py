@@ -291,9 +291,10 @@ def wait_time_change(actor, new_wait_time, ircconn, target, bot):
     if bot.change_wait_time(actor, new_wait_time):
         ircconn.send("PRIVMSG {0} :{1} the wait time is changing to {2} "
                      "seconds.\n".format(bot.channel, actor, new_wait_time))
-    ircconn.send("PRIVMSG {0} :{1} you are not authorized to make that "
-                 "change. Please contact one of the channel greeters, like {2}, for "
-                 "assistance.\n".format(target, actor, bot.greeters_string))
+    else:
+        ircconn.send("PRIVMSG {0} :{1} you are not authorized to make that "
+                     "change. Please contact one of the channel greeters, like {2}, for "
+                     "assistance.\n".format(target, actor, bot.greeters_string))
 
 
 # Responds to server Pings.
