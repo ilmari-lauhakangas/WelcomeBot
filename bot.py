@@ -57,13 +57,14 @@ class IrcConnection(object):
 
 # Defines a bot
 class Bot(object):
-    def __init__(self, channel,
+    def __init__(self, channel, greeters,
                  botnick=settings.botnick, welcome_message=settings.welcome_message,
                  nick_source=settings.nick_source, wait_time=settings.wait_time,
                  hello_list=settings.hello_list, help_list=settings.help_list,
                  bots=settings.bots):
         self.nick = botnick
         self.channel = channel
+        self.greeters = greeters
         self.welcome_message = welcome_message
         self.nick_source = nick_source
         self.wait_time = wait_time
@@ -166,11 +167,11 @@ def welcome_nick(bot, newcomer, ircconn, channel_greeters):
 
 
 # Checks and manages the status of newcomers.
-def process_newcomers(bot, ircconn, greeters, welcome=True):
+def process_newcomers(bot, ircconn, welcome=True):
     newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time]
     for person in newcomers:
         if welcome:
-            welcome_nick(bot, person.nick, ircconn, greeters)
+            welcome_nick(bot, person.nick, ircconn, bot.greeters)
 
         bot.add_known_nick(person.clean_nick)
         bot.newcomers.remove(person)
@@ -195,13 +196,13 @@ def clean_nick(nick):
 
 
 # Parses messages and respond to them appropriately.
-def message_response(bot, ircmsg, actor, ircconn, greeters):
+def message_response(bot, ircmsg, actor, ircconn):
     clean_actor = clean_nick(actor)
     clean_newcomers = [person.clean_nick for person in bot.newcomers]
 
     # if someone other than a newcomer or bot speaks into the channel
     if ircmsg.find("PRIVMSG " + bot.channel) != -1 and clean_actor not in bot.known_bots + clean_newcomers:
-        process_newcomers(bot, ircconn, greeters, welcome=False)  # Process/check newcomers without welcoming them
+        process_newcomers(bot, ircconn, welcome=False)  # Process/check newcomers without welcoming them
 
     # if someone (other than the bot) joins the channel
     if ircmsg.find("JOIN " + bot.channel) != -1 and actor != bot.nick:
@@ -241,7 +242,7 @@ def message_response(bot, ircmsg, actor, ircconn, greeters):
         if finder:
             new_wait_time = int(finder.group(1))
             # call this to check and change it
-            bot.wait_time = wait_time_change(actor, new_wait_time, ircconn, target, greeters, bot)
+            bot.wait_time = wait_time_change(actor, new_wait_time, ircconn, target, bot.greeters, bot)
 
     # If the server pings us then we've got to respond!
     if ircmsg.find("PING :") != -1:
@@ -314,7 +315,7 @@ def main():
 
     join_irc(ircconn, settings.botnick, ','.join(channels))
 
-    bots = [Bot(channel) for channel in channels]
+    bots = [Bot(channel, settings.channels[channel]['greeters']) for channel in channels]
 
     for bot in bots:
         bot.load_nicks()
@@ -325,7 +326,7 @@ def main():
         ready_to_read = ircconn.wait(wait_time)
 
         for bot in bots:
-            process_newcomers(bot, ircconn, settings.channels[bot.channel]['greeters'])
+            process_newcomers(bot, ircconn)
 
         if ready_to_read:
             msg_recv = ircconn.recv()  # gets message from ircconn
@@ -334,7 +335,7 @@ def main():
                 if ircmsg is not None:  # If we were able to parse it
                     # Respond to the parsed message
                     for bot in bots:
-                        message_response(bot, ircmsg, actor, ircconn, settings.channels[bot.channel]['greeters'])
+                        message_response(bot, ircmsg, actor, ircconn)
 
 
 if __name__ == "__main__":
