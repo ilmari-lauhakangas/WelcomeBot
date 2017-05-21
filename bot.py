@@ -314,10 +314,13 @@ def signal_handler(signum, frame):
 def main():
     signal.signal(signal.SIGINT, signal_handler)
 
+    channels = [channel for channel in settings.channels if settings.channels[channel]['join']]
+
+    if not channels:
+        return
+
     ircconn = IrcConnection()
     ircconn.start(settings.server)
-
-    channels = [channel for channel in settings.channels if settings.channels[channel]['join']]
 
     join_irc(ircconn, settings.botnick, ','.join(channels))
 
