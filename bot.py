@@ -73,11 +73,23 @@ class Bot(object):
         self.newcomers = []
         self.hello_regex = re.compile(self._get_regex(hello_list), re.I)  # Regexed version of hello list
         self.help_regex = re.compile(self._get_regex(help_list), re.I)  # Regexed version of help list
+        self.greeters_string = self._greeters_to_string()
 
     def _get_regex(self, options):
         """Builds a regex that matches one of the options + (space) bot nick."""
         pattern = "({}).({})".format('|'.join(options), self.nick)
         return pattern
+
+    def _greeters_to_string(self):
+        """Returns a grammatically correct string of the channel greeters"""
+        greeters_string = ', '.join(self.greeters[:-1])
+
+        if len(self.greeters) > 2:
+            greeters_string += ", and {}".format(self.greeters[-1])
+        elif len(self.greeters) == 2:
+            greeters_string += " and {}".format(self.greeters[-1])
+
+        return greeters_string
 
     def add_known_nick(self, nick):
         """Add the current newcomer's nick to nicks.json and known_nicks."""
@@ -156,10 +168,10 @@ def join_irc(ircconn, botnick, channel):
 #####################
 
 # Welcomes the "person" passed to it.
-def welcome_nick(bot, newcomer, ircconn, channel_greeters):
+def welcome_nick(bot, newcomer, ircconn):
     welcome = bot.welcome_message.format(
         newcomer=newcomer,
-        greeter_string=greeter_string(channel_greeters)
+        greeter_string=bot.greeters_string
     )
 
     command = "PRIVMSG {0} :{1}\n".format(bot.channel, welcome)
@@ -171,7 +183,7 @@ def process_newcomers(bot, ircconn, welcome=True):
     newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time]
     for person in newcomers:
         if welcome:
-            welcome_nick(bot, person.nick, ircconn, bot.greeters)
+            welcome_nick(bot, person.nick, ircconn)
 
         bot.add_known_nick(person.clean_nick)
         bot.newcomers.remove(person)
@@ -242,7 +254,7 @@ def message_response(bot, ircmsg, actor, ircconn):
         if finder:
             new_wait_time = int(finder.group(1))
             # call this to check and change it
-            bot.wait_time = wait_time_change(actor, new_wait_time, ircconn, target, bot.greeters, bot)
+            bot.wait_time = wait_time_change(actor, new_wait_time, ircconn, target, bot)
 
     # If the server pings us then we've got to respond!
     if ircmsg.find("PING :") != -1:
@@ -266,28 +278,16 @@ def bot_help(ircconn, target):
                  ".\n".format(target))
 
 
-# Returns a grammatically correct string of the channel_greeters.
-def greeter_string(greeters):
-    greeterstring = ', '.join(greeters[:-1])
-
-    if len(greeters) > 2:
-        greeterstring += ", and {}".format(greeters[-1])
-    elif len(greeters) == 2:
-        greeterstring += " and {}".format(greeters[-1])
-
-    return greeterstring
-
-
 # Changes the wait time from the channel.
-def wait_time_change(actor, new_wait_time, ircconn, target, channel_greeters, bot):
-    for admin in channel_greeters:
+def wait_time_change(actor, new_wait_time, ircconn, target, bot):
+    for admin in bot.greeters:
         if actor == admin:
             ircconn.send("PRIVMSG {0} :{1} the wait time is changing to {2} "
                          "seconds.\n".format(bot.channel, actor, new_wait_time))
             return new_wait_time
     ircconn.send("PRIVMSG {0} :{1} you are not authorized to make that "
                  "change. Please contact one of the channel greeters, like {2}, for "
-                 "assistance.\n".format(target, actor, greeter_string(channel_greeters)))
+                 "assistance.\n".format(target, actor, bot.greeters_string))
     return bot.wait_time
 
 
