@@ -82,12 +82,19 @@ class Bot(object):
 
     def _greeters_to_string(self):
         """Returns a grammatically correct string of the channel greeters"""
-        greeters_string = ', '.join(self.greeters[:-1])
+        greeters_num = len(self.greeters)
 
-        if len(self.greeters) > 2:
-            greeters_string += ", and {}".format(self.greeters[-1])
-        elif len(self.greeters) == 2:
-            greeters_string += " and {}".format(self.greeters[-1])
+        if greeters_num == 0:
+            greeters_string = ''
+        elif greeters_num == 1:
+            greeters_string = self.greeters[0]
+        else:
+            greeters_string = ', '.join(self.greeters[:-1])
+
+            if greeters_num > 2:
+                greeters_string += ','
+
+            greeters_string += ' and {}'.format(self.greeters[-1])
 
         return greeters_string
 
