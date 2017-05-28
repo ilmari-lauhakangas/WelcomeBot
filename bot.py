@@ -215,6 +215,9 @@ def parse_messages(ircmsg):
 
 # Cleans a nickname of decorators/identifiers
 def clean_nick(nick):
+    if nick.endswith('_away'):
+        nick = nick[:-5]
+
     nick = nick.rstrip('_1234567890')
     nick = nick.split('|', 1)[0]  # Returns same nick if '|' is absent
     nick = nick.lower()
