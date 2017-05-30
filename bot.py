@@ -215,8 +215,10 @@ def parse_messages(ircmsg):
 
 # Cleans a nickname of decorators/identifiers
 def clean_nick(nick):
-    if nick.endswith('_away'):
-        nick = nick[:-5]
+    status = re.search(r'_(afk|away|brb|off)$', nick)
+    if status:
+        stat_len = len(status.group(0))
+        nick = nick[:-stat_len]
 
     nick = nick.rstrip('_1234567890')
     nick = nick.split('|', 1)[0]  # Returns same nick if '|' is absent
