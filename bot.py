@@ -346,9 +346,6 @@ def main():
 
         ready_to_read = ircconn.wait(wait_time)
 
-        for bot in bots:
-            process_newcomers(bot, ircconn)
-
         if ready_to_read:
             msg_recv = ircconn.recv()  # gets message from ircconn
             for ircmsg in msg_recv.split('\r\n'):
@@ -358,6 +355,8 @@ def main():
                     for bot in bots:
                         message_response(bot, ircmsg, actor, ircconn)
 
+        for bot in bots:
+            process_newcomers(bot, ircconn)
 
 if __name__ == "__main__":
     sys.exit(main())
