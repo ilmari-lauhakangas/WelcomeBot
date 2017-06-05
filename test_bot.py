@@ -11,9 +11,9 @@ import bot as botcode
 import bot_settings as settings
 
 
-#########################
-### FAKE IRCSOCK  ###
-#########################
+################
+# FAKE IRCSOCK #
+################
 
 class FakeIrcConn(object):
     def __init__(self):
@@ -26,10 +26,7 @@ class FakeIrcConn(object):
         return self.sent_messages[-1]
 
     def has_sent_message(self):
-        if self.sent_messages:
-            return True
-        else:
-            return False
+        return bool(self.sent_messages)
 
 
 def fake_irc_start():
@@ -85,21 +82,20 @@ class TestBotClass(unittest.TestCase):
 
 class TestNewComerClass(unittest.TestCase):
     def setUp(self):
-        self.bot = botcode.Bot('test_nicks.csv')
-        self.NewComer = botcode.NewComer('Nancy', self.bot)
+        self.new_comer = botcode.NewComer('Nancy')
 
     def test_newcomer_init_nick(self):
-        self.assertEqual(self.NewComer.nick, 'Nancy')
+        self.assertEqual(self.new_comer.nick, 'Nancy')
 
     def test_newcomer_init_born(self):
-        newComer = botcode.NewComer('Baby', botcode.Bot())
+        new_comer = botcode.NewComer('Baby')
         time.sleep(0.01)
-        self.assertAlmostEqual(newComer.born, time.time() - .01, places=2)
+        self.assertAlmostEqual(new_comer.born, time.time() - .01, places=2)
 
     def test_newcomer_around_for(self):
-        newComer = botcode.NewComer('Shauna', botcode.Bot())
+        new_comer = botcode.NewComer('Shauna')
         time.sleep(0.01)
-        self.assertAlmostEqual(newComer.around_for(), .01, places=2)
+        self.assertAlmostEqual(new_comer.around_for(), .01, places=2)
 
 
 class TestJoinIRC(unittest.TestCase):
