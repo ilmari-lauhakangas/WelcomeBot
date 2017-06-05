@@ -62,7 +62,7 @@ Here, we're trying to test whether the bot's timing is correct.  This is importa
 
 In addition to the testCase classes, there's a few other functions, classes and statements in `test_bot.py`.  What are they?
 
-#### fake_ircsock and fake_irc_start
+#### FakeIrcConn and fake_irc_start
 
 This class and function are "mock" objects that allow us to test the parts of our code that involve using the IRC protocol without actually connecting to IRC.  It's somewhat of a hacky solution, but we're using it for now.  To see how it works, let's first look at the real ircstart function in `bot.py`:
 
@@ -96,10 +96,10 @@ We can see this class being used when we test the bot's ability to say hello:
         botcode.message_response(self.bot,"PRIVMSG sup WelcomeBot2","Shauna", ircsock=self.ircsock)
         self.assertTrue(self.ircsock.has_sent_message())
 
-The function `fake_irc_start()` simply creates a fake_ircsock object which can be called by tests that need it:
+The function `fake_irc_start()` simply creates a FakeIrcConn object which can be called by tests that need it:
 
     def fake_irc_start():
-        ircsock = fake_ircsock()
+        ircsock = FakeIrcConn()
         return ircsock   
 
 #### if __name__ == '__main__`
