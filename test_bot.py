@@ -2,7 +2,7 @@
 
 # TODO(kgriffs): These are wildly out of date; redo tests with pytest and tox
 
-import csv
+import json
 import unittest
 import time
 
@@ -36,48 +36,40 @@ def fake_irc_start():
 
 class TestBotClass(unittest.TestCase):
     def setUp(self):
-        self.bot = botcode.Bot()
+        self.bot = botcode.Bot(None, '', nick_source='test_nicks.json')
 
-    def test_csv_source(self):
-        self.assertEqual(self.bot.nick_source, 'nicks.csv')
+    def test_nick_source(self):
+        self.assertEqual(self.bot.nick_source, 'test_nicks.json')
 
     def test_known_nicks_setup(self):
-        bot = botcode.Bot(nick_source='test_nicks.csv')
-        self.assertEqual(bot.known_nicks, [['Alice'], ['Bob']])
+        self.bot.load_nicks()
+        self.assertEqual(self.bot.known_nicks, {'Alice', 'Bob'})
 
     def test_wait_time(self):
         self.assertEqual(self.bot.wait_time, settings.wait_time)
 
     def test_custom_wait_time(self):
-        bot = botcode.Bot(wait_time=30)
+        bot = botcode.Bot(None, '', wait_time=30)
         self.assertEqual(bot.wait_time, 30)
 
     def test_newcomers_setup(self):
         self.assertEqual(self.bot.newcomers, [])
 
-    def test_add_nick_to_list(self):
-        self.bot.known_nicks = [['Fluffy'], ['Spot']]
+    def test_add_nick_to_set(self):
+        self.bot.known_nicks = {'Fluffy', 'Spot'}
         self.bot.add_known_nick('Roger')
-        self.assertEqual(self.bot.known_nicks, [['Fluffy'], ['Spot'], ['Roger']])
+        self.assertEqual(self.bot.known_nicks, {'Fluffy', 'Spot', 'Roger'})
 
-    def test_add_nick_underscore_removal(self):
-        self.bot.known_nicks = [['Fluffy'], ['Spot']]
-        self.bot.add_known_nick('Roger__')
-        self.assertEqual(self.bot.known_nicks, [['Fluffy'], ['Spot'], ['Roger']])
-
-    def test_add_nick_to_csv(self):
-        bot = botcode.Bot(nick_source='test_nicks.csv')
-        bot.add_known_nick('Roger__')
-        with open('test_nicks.csv', 'rb') as csv_file:
-            known_nicks = []
-            csv_file_data = csv.reader(csv_file, delimiter=',', quotechar='|')
-            for row in csv_file_data:
-                known_nicks.append(row)
-            self.assertEqual(known_nicks, [['Alice'], ['Bob'], ['Roger']])
+    def test_add_nick_to_json(self):
+        self.bot.add_known_nick('Roger')
+        with open('test_nicks.json', 'rb') as nick_file:
+            doc = json.load(nick_file)
+        known_nicks = set(doc['nicks'])
+        self.assertEqual(known_nicks, {'Alice', 'Bob', 'Roger'})
 
     def tearDown(self):
-        with open('test_nicks.csv', 'w') as csv_file:
-            csv_file.write('Alice\nBob\n')
+        with open('test_nicks.json', 'w') as nick_file:
+            json.dump({'nicks': ['Alice', 'Bob']}, nick_file)
 
 
 class TestNewComerClass(unittest.TestCase):
