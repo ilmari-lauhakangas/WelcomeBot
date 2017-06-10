@@ -107,37 +107,30 @@ class TestJoinIRC(unittest.TestCase):
 
 class TestProcessNewcomers(unittest.TestCase):
     def setUp(self):
-        self.bot = botcode.Bot(nick_source='test_nicks.csv', wait_time=.1)
-        botcode.NewComer('Harry', self.bot)
-        botcode.NewComer('Hermione', self.bot)
+        self.bot = botcode.Bot(None, '', nick_source='test_nicks.json', wait_time=.1)
+        self.bot.add_newcomer('Harry')
+        self.bot.add_newcomer('Hermione')
         time.sleep(.15)
-        botcode.NewComer('Ron', self.bot)
+        self.bot.add_newcomer('Ron')
         self.ircsock = fake_irc_start()
 
     def test_check_new_newcomers(self):
-        botcode.process_newcomers(self.bot, [i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time],
-                                  ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters,
-                                  welcome=0)
+        botcode.process_newcomers(self.bot, ircconn=self.ircsock, welcome=False)
         self.assertEqual(len(self.bot.newcomers), 1)
 
     def test_check_new_known_nicks(self):
-        botcode.process_newcomers(self.bot, [i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time],
-                                  ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters,
-                                  welcome=0)
-        self.assertEqual(self.bot.known_nicks, [['Alice'], ['Bob'], ['Harry'], ['Hermione']])
+        botcode.process_newcomers(self.bot, ircconn=self.ircsock, welcome=False)
+        self.assertEqual(self.bot.known_nicks, {'Alice', 'Bob', 'Harry', 'Hermione'})
 
     def test_welcome_nick(self):
-        botcode.process_newcomers(bot=self.bot,
-                                  newcomerlist=[i for i in self.bot.newcomers if i.around_for() > self.bot.wait_time],
-                                  ircconn=self.ircsock, channel=settings.channel, greeters=settings.channel_greeters,
-                                  welcome=1)
+        botcode.process_newcomers(self.bot, ircconn=self.ircsock, welcome=True)
         self.assertEqual(self.ircsock.sent_message(),
                          "PRIVMSG {0} :Welcome Hermione!  The channel is pretty quiet right now, so I thought I'd say hello, and ping some people (like {1}) that you're here.  If no one responds for a while, try emailing us at hello@openhatch.org or just try coming back later.  FYI, you're now on my list of known nicknames, so I won't bother you again.\n".format(
-                             settings.channel, botcode.greeter_string(settings.channel_greeters)))
+                             self.bot.channel, self.bot.greeters_string))
 
     def tearDown(self):
-        with open('test_nicks.csv', 'w') as csv_file:
-            csv_file.write('Alice\nBob\n')
+        with open('test_nicks.json', 'w') as nick_file:
+            json.dump({'nicks': ['Alice', 'Bob']}, nick_file)
 
 
 class TestParseMessages(unittest.TestCase):
