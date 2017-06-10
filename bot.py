@@ -154,9 +154,12 @@ class Bot(object):
 
 class NewComer(object):
     def __init__(self, nick):
+        self.set_nick(nick)
+        self.born = time.time()
+
+    def set_nick(self, nick):
         self.nick = nick
         self.clean_nick = clean_nick(self.nick)
-        self.born = time.time()
 
     def around_for(self):
         return time.time() - self.born
@@ -245,8 +248,8 @@ def message_response(bot, ircmsg, actor, ircconn):
     if ircmsg.find("NICK :") != -1 and actor != bot.nick:
         for person in bot.newcomers:  # if that person was in the newlist
             if person.nick == actor:
-                person.nick = ircmsg.split(":")[2]  # update to new nick (and clean up the nick)
-                person.clean_nick = clean_nick(person.nick)
+                nick = ircmsg.split(":")[2]
+                person.set_nick(nick)  # update to new nick (and clean up the nick)
 
     # If someone parts or quits the #channel...
     if ircmsg.find("PART " + bot.channel) != -1 or ircmsg.find("QUIT") != -1:
