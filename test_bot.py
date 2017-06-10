@@ -105,8 +105,7 @@ class TestJoinIRC(unittest.TestCase):
 
     def test_sent_messages(self):
         botcode.join_irc(self.ircsock, settings.botnick, settings.channel)
-        expected = ["USER {} {} {} :This is http://openhatch.org/'s greeter bot.\n".format(self.bot.nick, self.bot.nick,
-                                                                                           self.bot.nick),
+        expected = ["USER {0} {0} {0} :This is http://openhatch.org/'s greeter bot.\n".format(self.bot.nick),
                     'NICK {}\n'.format(self.bot.nick), 'JOIN {} \n'.format(settings.channel)]
         self.assertEqual(self.ircsock.sent_messages, expected)
 
