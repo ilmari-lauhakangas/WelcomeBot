@@ -93,12 +93,15 @@ class TestNewComerClass(unittest.TestCase):
 class TestJoinIRC(unittest.TestCase):
     def setUp(self):
         self.ircsock = fake_irc_start()
-        self.bot = botcode.Bot()
+        self.bot = botcode.Bot(None, '')
 
     def test_sent_messages(self):
-        botcode.join_irc(self.ircsock, settings.botnick, settings.channel)
-        expected = ["USER {0} {0} {0} :This is http://openhatch.org/'s greeter bot.\n".format(self.bot.nick),
-                    'NICK {}\n'.format(self.bot.nick), 'JOIN {} \n'.format(settings.channel)]
+        channels = [channel for channel in settings.channels if settings.channels[channel]['join']]
+        channels_str = ','.join(channels)
+        botcode.join_irc(self.ircsock, settings.botnick, channels_str)
+        expected = ["USER {0} {0} {0} :This is http://falcon.readthedocs.io/en/stable/"
+                    "greeter bot.\n".format(self.bot.nick),
+                    'NICK {}\n'.format(self.bot.nick), 'JOIN {} \n'.format(channels_str)]
         self.assertEqual(self.ircsock.sent_messages, expected)
 
 
