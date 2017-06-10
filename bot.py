@@ -195,7 +195,7 @@ def welcome_nick(bot, newcomer, ircconn):
 
 # Checks and manages the status of newcomers.
 def process_newcomers(bot, ircconn, welcome=True):
-    newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time]
+    newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time or not welcome]
     for person in newcomers:
         if welcome:
             welcome_nick(bot, person.nick, ircconn)
