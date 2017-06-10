@@ -245,20 +245,17 @@ class TestMessageResponse(unittest.TestCase):
 
 
 class TestGreeterString(unittest.TestCase):
-    def setUp(self):
-        self.bot = botcode.Bot('test_nicks.csv')
-
     def test_one_greeter(self):
-        greeterstring = botcode.greeter_string(['shauna'])
-        self.assertEqual(greeterstring, "shauna")
+        self.bot = botcode.Bot(None, ['shauna'])
+        self.assertEqual(self.bot.greeters_string, "shauna")
 
     def test_two_greeters(self):
-        greeters = botcode.greeter_string(['shauna', 'sauna'])
-        self.assertEqual(greeters, "shauna and sauna")
+        self.bot = botcode.Bot(None, ['shauna', 'sauna'])
+        self.assertEqual(self.bot.greeters_string, "shauna and sauna")
 
     def test_three_greeters(self):
-        greeters = botcode.greeter_string(['shauna', 'sauna', 'megafauna'])
-        self.assertEqual(greeters, "shauna, sauna, and megafauna")
+        self.bot = botcode.Bot(None, ['shauna', 'sauna', 'megafauna'])
+        self.assertEqual(self.bot.greeters_string, "shauna, sauna, and megafauna")
 
 
 # Runs all the unit-tests
