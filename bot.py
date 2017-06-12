@@ -57,6 +57,8 @@ class IrcConnection(object):
 
 # Defines a bot
 class Bot(object):
+    known_nicks = set()
+
     def __init__(self, channel, greeters,
                  botnick=settings.botnick, welcome_message=settings.welcome_message,
                  nick_source=settings.nick_source, wait_time=settings.wait_time,
@@ -68,7 +70,6 @@ class Bot(object):
         self.welcome_message = welcome_message
         self.nick_source = nick_source
         self.wait_time = wait_time
-        self.known_nicks = set()
         self.known_bots = bots
         self.newcomers = []
         self.hello_regex = re.compile(self._get_regex(hello_list), re.I)  # Regexed version of hello list
@@ -107,7 +108,6 @@ class Bot(object):
         self.newcomers.append(NewComer(nick))
 
     def save_nicks(self):
-        self.load_nicks()  # in case other bot instance saved it already
         with open(self.nick_source, 'w') as nick_file:
             if PY3:
                 json.dump({'nicks': list(self.known_nicks)},
@@ -343,6 +343,7 @@ def main():
 
     for bot in bots:
         bot.load_nicks()
+        break  # need to load once since known nicks is shared
 
     while 1:  # Loop forever
         wait_time = min([bot.timeout() for bot in bots])

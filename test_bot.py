@@ -61,6 +61,7 @@ class TestBotClass(unittest.TestCase):
         self.assertEqual(self.bot.known_nicks, {'Fluffy', 'Spot', 'Roger'})
 
     def test_add_nick_to_json(self):
+        self.bot.load_nicks()
         self.bot.add_known_nick('Roger')
         with open('test_nicks.json', 'rb') as nick_file:
             doc = json.load(nick_file)
@@ -70,6 +71,7 @@ class TestBotClass(unittest.TestCase):
     def tearDown(self):
         with open('test_nicks.json', 'w') as nick_file:
             json.dump({'nicks': ['Alice', 'Bob']}, nick_file)
+        self.bot.known_nicks.clear()
 
 
 class TestNewComerClass(unittest.TestCase):
