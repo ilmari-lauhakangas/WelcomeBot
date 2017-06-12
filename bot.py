@@ -200,10 +200,11 @@ def welcome_nick(bot, newcomer, ircconn):
 def process_newcomers(bot, ircconn, welcome=True):
     newcomers = [p for p in bot.newcomers if p.around_for() > bot.wait_time or not welcome]
     for person in newcomers:
-        if welcome:
-            welcome_nick(bot, person.nick, ircconn)
+        if person.clean_nick not in bot.known_nicks:  # newcomer could be processed on other channel recently
+            if welcome:
+                welcome_nick(bot, person.nick, ircconn)
 
-        bot.add_known_nick(person.clean_nick)
+            bot.add_known_nick(person.clean_nick)
         bot.newcomers.remove(person)
 
 
