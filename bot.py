@@ -251,12 +251,16 @@ def message_response(bot, ircmsg, actor, ircconn):
             if person.nick == actor:
                 nick = ircmsg.split(":")[2]
                 person.set_nick(nick)  # update to new nick (and clean up the nick)
+                if person.clean_nick in bot.known_nicks:  # changed to known nick
+                    bot.newcomers.remove(person)  # remove them from the list
+                break
 
     # If someone parts or quits the #channel...
     if ircmsg.find("PART " + bot.channel) != -1 or ircmsg.find("QUIT") != -1:
         for person in bot.newcomers:  # and that person is on the newlist
             if clean_actor == person.clean_nick:
                 bot.newcomers.remove(person)  # remove them from the list
+                break
 
     if ircmsg.find("PRIVMSG " + bot.channel) != -1:
         target = bot.channel
