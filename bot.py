@@ -45,8 +45,6 @@ class IrcConnection(object):
                 msg = msg.decode('utf-8')
             except UnicodeDecodeError:
                 msg = msg.decode('iso-8859-1')  # Latin-1
-        msg = msg.strip('\n\r')  # removing any unnecessary linebreaks
-        print(msg)  # TODO Potentially make this a log instead?
         return msg
 
     def send(self, msg):
@@ -350,13 +348,18 @@ def main():
         bot.load_nicks()
         break  # need to load once since known nicks is shared
 
-    while 1:  # Loop forever
+    while True:  # Loop forever
         wait_time = min([bot.timeout() for bot in bots])
 
         ready_to_read = ircconn.wait(wait_time)
 
         if ready_to_read:
             msg_recv = ircconn.recv()  # gets message from ircconn
+            if not msg_recv:
+                print('Disconnected, exit')
+                exit(0)
+            msg_recv = msg_recv.strip('\n\r')  # removing any unnecessary linebreaks
+            print(msg_recv)  # TODO Potentially make this a log instead?
             for ircmsg in msg_recv.split('\r\n'):
                 ircmsg, actor = parse_messages(ircmsg)  # parses it or returns None
                 if ircmsg is not None:  # If we were able to parse it
