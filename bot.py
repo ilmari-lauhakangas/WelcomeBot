@@ -176,7 +176,8 @@ def join_irc(ircconn, botnick, channel):
     if os.path.isfile("password.txt") and settings.registered is True:
         with open("password.txt", 'r') as f:
             password = f.read()
-            ircconn.send("PRIVMSG {} {} {} {}".format("NickServ", "IDENTIFY", botnick, password))
+            ircconn.send("PRIVMSG NickServ :IDENTIFY {} {}".format(botnick, password))
+            time.sleep(10)
     ircconn.send("JOIN {} \n".format(channel))  # Joins channel
 
 
