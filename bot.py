@@ -286,6 +286,12 @@ def message_response(bot, ircmsg, actor, ircconn):
     if ircmsg.find("PING :") != -1:
         pong(ircconn, ircmsg)
 
+    # If someone is kicked, don't welcome them
+    if ircmsg.find("KICK " + bot.channel) != -1:
+        for person in bot.newcomers:
+            if ircmsg.find("KICK " + bot.channel + " " + person.nick) != -1:
+                bot.newcomers.remove(person)
+                break
 
 #########################################################
 # Bot Response Functions (called by message_response()) #
