@@ -3,15 +3,16 @@
 # Licensed https://creativecommons.org/licenses/by-sa/2.0/
 
 # Import some necessary libraries.
-import socket
+import select
 import sys
 import time
+
+import json
+import os.path
 import random
 import re
-import select
-import os.path
-import json
 import signal
+import socket
 
 # To configure bot, please make changes in bot_settings.py
 import bot_settings as settings
