@@ -177,7 +177,7 @@ def join_irc(ircconn, botnick, channel):
         with open("password.txt", 'r') as f:
             password = f.read()
             ircconn.send("PRIVMSG NickServ :IDENTIFY {} {}".format(botnick, password))
-            time.sleep(10)
+            time.sleep(10)  # TODO use SASL authentication https://bd808.com/blog/2017/03/01/sasl-auth-with-python-irc/
     ircconn.send("JOIN {} \n".format(channel))  # Joins channel
 
 
