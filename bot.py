@@ -219,7 +219,7 @@ def parse_messages(ircmsg):
 
 # Cleans a nickname of decorators/identifiers
 def clean_nick(nick):
-    status = re.search(r'_(afk|away|brb|off|\[m\])$', nick)
+    status = re.search(r'_(afk|away|brb|off)$|\[m\]$', nick)
     if status:
         stat_len = len(status.group(0))
         nick = nick[:-stat_len]
