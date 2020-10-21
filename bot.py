@@ -173,8 +173,9 @@ def join_irc(ircconn, botnick, channel):
     ircconn.send("USER {0} {0} {0} :This is http://falcon.readthedocs.io/en/stable/"
                  "greeter bot.\n".format(botnick))  # bot authentication
     ircconn.send("NICK {}\n".format(botnick))  # Assign the nick to the bot.
-    if os.path.isfile("password.txt") and settings.registered is True:
-        with open("password.txt", 'r') as f:
+    pwd_file = settings.password_file
+    if pwd_file and os.path.isfile(pwd_file):
+        with open(pwd_file, 'r') as f:
             password = f.read()
             ircconn.send("PRIVMSG NickServ :IDENTIFY {} {}".format(botnick, password))
             time.sleep(10)  # TODO use SASL authentication https://bd808.com/blog/2017/03/01/sasl-auth-with-python-irc/

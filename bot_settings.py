@@ -5,7 +5,8 @@ botnick = "elaenor"
 server = "irc.freenode.net"
 channels = {"#falconframework": {'greeters': ["kgriffs", "jvrbanac"],
                                  'join': True}}
-registered = False
+# Optional: authenticate a registered nick
+password_file = "/opt/WelcomeBot/password.txt"
 
 # Bot behavior
 wait_time = 60
