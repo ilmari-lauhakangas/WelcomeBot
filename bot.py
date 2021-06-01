@@ -12,6 +12,7 @@ import os.path
 import random
 import re
 import signal
+import ssl
 import socket
 
 # To configure bot, please make changes in bot_settings.py
@@ -28,7 +29,8 @@ class IrcConnection(object):
     """Creates a socket that will be used to send and receive messages"""
 
     def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+        self.sock = ctx.wrap_socket(socket.socket(socket.AF_INET, socket.SOCK_STREAM))
 
     def start(self, server):  # pragma: no cover  (this excludes this function from testing)
         """Connects the socket to an IRC server"""
