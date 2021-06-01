@@ -32,7 +32,7 @@ class IrcConnection(object):
 
     def start(self, server):  # pragma: no cover  (this excludes this function from testing)
         """Connects the socket to an IRC server"""
-        self.sock.connect((server, 6667))  # Here we connect to server using port 6667.
+        self.sock.connect((server, 6697))  # Here we connect to server using port 6697.
 
     def wait(self, timeout):
         rlist, _, _ = select.select([self.sock], [], [], timeout)  # wlist, xlist are ignored here
